@@ -585,7 +585,8 @@ function initChapter(){
   function curAt(t){let el=null; for(const x of said){if(x.t<=t+0.3)el=x.el;else break} return el}
   function centreY(el){const r=el.getBoundingClientRect(), th=($(".top")||{offsetHeight:0}).offsetHeight, avail=innerHeight-th;
     return Math.max(0,Math.round(r.height<avail-60 ? r.top+scrollY-th-(avail-r.height)/2 : r.top+scrollY-th-24))}
-  function centre(el){if(!el)return; const y=centreY(el); if(Math.abs(y-scrollY)>3){progAt=Date.now();window.scrollTo({top:y,behavior:"smooth"})}}
+  let tgtY=null;
+  function centre(el){if(!el)return; const y=centreY(el); if(Math.abs(y-scrollY)>3){progAt=Date.now();tgtY=Math.min(y,document.documentElement.scrollHeight-innerHeight);window.scrollTo({top:y,behavior:"smooth"})}}
   function update(force){
     if(!au.isConnected) return;
     setDim();
@@ -598,8 +599,10 @@ function initChapter(){
   }
   function resync(){userAt=-1e9; wasUserPaused=false; update(true)}
   FOLLOW=resync; window.KP.resync=()=>{if(au.isConnected)resync()};
-  const userScroll=()=>{if(!au.isConnected||!isOn()||!started)return; userAt=Date.now(); back.hidden=!curEl;
-    if(Date.now()-progAt<1500){progAt=0;window.scrollTo({top:scrollY,behavior:"instant"})}};  // stop our own smooth scroll so the user's scroll wins
+  const userScroll=e=>{if(!au.isConnected||!isOn()||!started)return; userAt=Date.now(); back.hidden=!curEl;
+    if(Date.now()-progAt<1500){progAt=0; if(tgtY!==null&&Math.abs(scrollY-tgtY)>2){  // our smooth scroll is still running: stop it so the user's scroll wins
+      window.scrollTo({top:scrollY,behavior:"instant"});
+      if(e&&e.type==="wheel"&&e.deltaY) window.scrollBy({top:e.deltaY*(e.deltaMode===1?40:e.deltaMode===2?innerHeight:1),behavior:"instant"})}}};  // keep the wheel step that the stop would swallow
   onX(window,"wheel",userScroll,{passive:true});
   onX(window,"touchmove",userScroll,{passive:true});
   onX(document,"keydown",e=>{if(e.ctrlKey||e.metaKey||e.altKey||!["ArrowUp","ArrowDown","PageUp","PageDown","Home","End"," "].includes(e.key))return;
